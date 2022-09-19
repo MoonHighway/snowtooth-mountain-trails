@@ -4,6 +4,12 @@ const trails = require("./trail-data.json");
 const findEasiestTrail = require("./findEasiestTrail");
 
 const typeDefs = gql`
+  extend schema
+    @link(
+      url: "https://specs.apollo.dev/federation/v2.0",
+      import: ["@key"]
+    )
+
   type Trail @key(fields: "id") {
     id: ID!
     name: String!
@@ -14,8 +20,8 @@ const typeDefs = gql`
     night: Boolean!
   }
 
-  extend type Lift @key(fields: "id") {
-    id: ID! @external
+  type Lift @key(fields: "id") {
+    id: ID!
     easyWayDown: Trail!
   }
 
@@ -41,48 +47,49 @@ const typeDefs = gql`
     setTrailStatus(id: ID!, status: TrailStatus!): Trail!
   }
 `;
+
 const resolvers = {
   Query: {
     allTrails: (root, { status }) =>
       !status
         ? trails
-        : trails.filter(trail => trail.status === status),
+        : trails.filter((trail) => trail.status === status),
     Trail: (root, { id }) =>
-      trails.find(trail => id === trail.id),
+      trails.find((trail) => id === trail.id),
     trailCount: (root, { status }) =>
       !status
         ? trails.length
-        : trails.filter(trail => trail.status === status)
-            .length
+        : trails.filter((trail) => trail.status === status)
+            .length,
   },
   Mutation: {
     setTrailStatus: (root, { id, status }) => {
       let updatedTrail = trails.find(
-        trail => id === trail.id
+        (trail) => id === trail.id
       );
       updatedTrail.status = status;
       return updatedTrail;
-    }
+    },
   },
   Trail: {
-    __resolveReference: reference =>
-      trails.find(trail => trail.id === reference.id)
+    __resolveReference: (reference) =>
+      trails.find((trail) => trail.id === reference.id),
   },
   Lift: {
-    easyWayDown: lift => {
-      const waysDown = trails.filter(trail =>
+    easyWayDown: (lift) => {
+      const waysDown = trails.filter((trail) =>
         trail.lift.includes(lift.id)
       );
       return findEasiestTrail(waysDown);
-    }
-  }
+    },
+  },
 };
 
 const server = new ApolloServer({
   schema: buildSubgraphSchema({
     typeDefs,
-    resolvers
-  })
+    resolvers,
+  }),
 });
 
 server.listen(process.env.PORT).then(({ url }) => {
