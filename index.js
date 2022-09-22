@@ -2,51 +2,10 @@ const { ApolloServer, gql } = require("apollo-server");
 const { buildSubgraphSchema } = require("@apollo/subgraph");
 const trails = require("./trail-data.json");
 const findEasiestTrail = require("./findEasiestTrail");
+const fs = require("fs");
 
-const typeDefs = gql`
-  extend schema
-    @link(
-      url: "https://specs.apollo.dev/federation/v2.0",
-      import: ["@key"]
-    )
-
-  type Trail @key(fields: "id") {
-    id: ID!
-    name: String!
-    status: TrailStatus!
-    difficulty: Difficulty!
-    groomed: Boolean!
-    trees: Boolean!
-    night: Boolean!
-  }
-
-  type Lift @key(fields: "id") {
-    id: ID!
-    easyWayDown: Trail!
-  }
-
-  enum Difficulty {
-    BEGINNER
-    INTERMEDIATE
-    ADVANCED
-    EXPERT
-  }
-
-  enum TrailStatus {
-    OPEN
-    CLOSED
-  }
-
-  type Query {
-    allTrails(status: TrailStatus): [Trail!]!
-    Trail(id: ID!): Trail!
-    trailCount(status: TrailStatus): Int!
-  }
-
-  type Mutation {
-    setTrailStatus(id: ID!, status: TrailStatus!): Trail!
-  }
-`;
+const gqlFile = fs.readFileSync("./trails-schema.graphql", "UTF-8");
+const typeDefs = gql(gqlFile);
 
 const resolvers = {
   Query: {
